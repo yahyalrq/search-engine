@@ -281,9 +281,9 @@ class L2RFeatureExtractor:
         self.doc_category_info = doc_category_info
         self.document_preprocessor = document_preprocessor
         self.stopwords = stopwords
-        self.recognized_categories= list(recognized_categories)
         self.ce_scorer = ce_scorer
         self.stats=self.document_index.get_statistics()
+        self.recognized_categories= set(self.stats["all_genres"])
 
     def get_article_length(self, docid: int) -> int:
         try:

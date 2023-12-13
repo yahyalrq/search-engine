@@ -42,8 +42,8 @@ class BasicInvertedIndex(InvertedIndex):
         for term in terms_to_delete:
             del self.index[term]
 
-    def add_doc(self, docid: int, tokens: list[str]) -> None:
-        token_counts = Counter(tokens) 
+    def add_doc(self, docid: int, tokens: list[str], genres: list[str]) -> None:
+        token_counts = Counter(tokens)
 
         for token, freq in token_counts.items():
             posting = (docid, freq)
@@ -52,9 +52,10 @@ class BasicInvertedIndex(InvertedIndex):
             else:
                 insort(self.index[token], posting)
 
-        self.statistics['docmap'][docid] = { 
+        self.statistics['docmap'][docid] = {
             'total_tokens': len(tokens),
-            'unique_tokens': len(token_counts)
+            'unique_tokens': len(token_counts),
+            'genres': genres  
         }
 
         return (tokens, dict(token_counts))
@@ -71,7 +72,7 @@ class BasicInvertedIndex(InvertedIndex):
             frequency.append(freq)
         return {term: sum(frequency)}
 
-    def get_statistics(self) -> dict[str, int]:
+    def get_statistics(self) -> dict:
         filtered_docmap = {k: v for k, v in self.statistics['docmap'].items() if k is not None}
         filtered_index = {k: v for k, v in self.index.items() if k is not None}
 
@@ -79,13 +80,20 @@ class BasicInvertedIndex(InvertedIndex):
         total_tokens = sum(meta["total_tokens"] for meta in filtered_docmap.values())
         unique_tokens = len(filtered_index)
 
+        all_genres = set()
+        for meta in filtered_docmap.values():
+            genres = meta.get("genres", [])
+            all_genres.update(genres)
+
         return {
             "unique_token_count": unique_tokens,
             "total_token_count": total_tokens,
             "stored_total_token_count": sum(len(postings) for postings in filtered_index.values()),
             "number_of_documents": total_docs,
-            "mean_document_length": total_tokens / total_docs if total_docs else 0
+            "mean_document_length": total_tokens / total_docs if total_docs else 0,
+            "all_genres": list(all_genres)
         }
+
 
     def save(self, mongo_uri, db_name, collection_name) -> None:
             client = MongoClient(mongo_uri)
@@ -101,10 +109,27 @@ class BasicInvertedIndex(InvertedIndex):
 
             print("Index saved to MongoDB.")
 
+    def save_vectorized_features(self, mongo_uri, db_name, collection_name, vectors) -> None:
+        client = MongoClient(mongo_uri)
+        db = client[db_name]
+        collection = db[collection_name]
+
+        collection.delete_many({})
+
+        for doc_id, vector in vectors.items():
+            collection.insert_one({"doc_id": doc_id, "vector": vector})
+
+        print("Vector saved to MongoDB.")
+
     def load(self, mongo_uri, db_name, collection_name) -> None:
         client = MongoClient(mongo_uri)
         db = client[db_name]
         collection = db[collection_name]
+
+        # Check if the collection is empty
+        if collection.count_documents({}) == 0:
+            raise ValueError(f"The collection '{collection_name}' in database '{db_name}' is empty.")
+
         self.index = {}
         self.statistics = defaultdict(Counter)
 
@@ -147,6 +172,7 @@ class Indexer:
             raw_text_dict[docid] = text_description
             title_text_dict[docid] = text_title
         return raw_text_dict, title_text_dict
+    
     @staticmethod
     def create_index(index_type: IndexType, mongo_connection_string: str,
                      database_name: str, collection_name: str,
@@ -178,7 +204,7 @@ class Indexer:
             tokens = document_preprocessor.tokenize(document.get(text_key, ''))
             token_set = [t if t in valid_tokens else None for t in tokens]
             docid=str(document["_id"])
-            index.add_doc(docid, token_set)
+            index.add_doc(docid, token_set, document["genres"])
             doc_count += 1
             if max_docs > 0 and doc_count >= max_docs:
                 break
