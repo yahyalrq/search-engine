@@ -103,8 +103,8 @@ class SearchEngine:
         doc_rankings = {}
         ranked_docs = l2r.query(query)
         print("Finished querying", query)
-        doc_ids = [doc['doc_id'] for doc in ranked_docs]
-        doc_rankings[query] = doc_ids
+        doc_scores = [(doc['doc_id'],doc["score"]) for doc in ranked_docs]
+        doc_rankings[query] = doc_scores
         return doc_rankings[query][0:10]
     
     def query_with_BM25(self, query):
