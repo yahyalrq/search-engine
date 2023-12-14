@@ -12,7 +12,8 @@ from typing import Dict, List, Union, Set
 import json
 import pickle
 import os
-
+import torch
+from transformers import RobertaModel, RobertaTokenizer
 
 class L2RRanker:
     def __init__(self, document_index: InvertedIndex, title_index: InvertedIndex,
@@ -58,7 +59,7 @@ class L2RRanker:
                             title_word_counts[doc_id] = self.processed_titles[doc_id]
 
                 for docid, relevance in relevant_pairs:
-                    features = self.feature_extractor.generate_features(docid, doc_word_counts, title_word_counts,query_tokens, query)
+                    features = self.feature_extractor.generate_features(docid, doc_word_counts, title_word_counts,query_tokens, query, self.raw_text_dict)
                     X.append(features)
                     y.append(relevance)
             else:
@@ -186,7 +187,7 @@ class L2RRanker:
             print("start to generate features")
             X = []
             for doc_id in top_document_ids:
-                features = self.feature_extractor.generate_features(doc_id, doc_word_counts, title_word_counts, query_tokens, query)
+                features = self.feature_extractor.generate_features(doc_id, doc_word_counts, title_word_counts, query_tokens, query,self.raw_text_dict)
                 X.append(features)
         else:
             
@@ -283,9 +284,19 @@ class L2RFeatureExtractor:
         self.stopwords = stopwords
         self.ce_scorer = ce_scorer
         self.stats=self.document_index.get_statistics()
+        self.roberta_model = RobertaModel.from_pretrained('roberta-base')
+        self.roberta_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         self.recognized_categories= set(self.stats["all_genres"])
 
 
+    def get_combined_roberta_features(self, query: str, doc_text: str) -> torch.Tensor:
+
+        combined_text = query + " " + doc_text 
+        inputs = self.roberta_tokenizer(combined_text, return_tensors="pt", max_length=512, truncation=True)
+        with torch.no_grad():
+            outputs = self.roberta_model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1)
+    
     def get_article_length(self, docid: int) -> int:
         try:
             return self.document_index.statistics['docmap'][docid]['total_tokens']
@@ -406,7 +417,7 @@ class L2RFeatureExtractor:
 
     def generate_features(self, docid: int, doc_word_counts: dict[str, int],
                           title_word_counts: dict[str, int], query_parts: list[str],
-                          query: str) -> list:
+                          query: str,  raw_text_dict=None) -> list:
 
         feature_vector = []
         feature_vector.append(self.get_article_length(docid))
@@ -463,7 +474,10 @@ class L2RFeatureExtractor:
         # Document Categories
         cat_vec= self.get_document_categories(docid)
         feature_vector.extend(cat_vec)
-
+        text = raw_text_dict.get(docid, "")
+        combined_roberta_features = self.get_combined_roberta_features(query, text)
+        combined_roberta_features = combined_roberta_features.view(-1)
+        feature_vector.extend([feature for feature in combined_roberta_features.tolist()])
         return feature_vector
 
 

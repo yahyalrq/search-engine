@@ -38,75 +38,7 @@ class Ranker:
         self.scorer = scorer
         self.stopwords = stopwords
         self.raw_text_dict = raw_text_dict
-        parameters = {'b': 0.75, 'k1': 1.2, 'k3': 8}
-        self.b = parameters['b']
-        self.k1 = parameters['k1']
-        self.k3 = parameters['k3']
-        self.processed_docs = {}
-        if self.raw_text_dict:
-            for doc_id in self.raw_text_dict:
-                tokens = [token for token in self.tokenize(self.raw_text_dict[doc_id]) if token not in self.stopwords]
-                self.processed_docs[doc_id] = Counter(tokens)
-
-
-    def _modify_query_with_pseudofeedback(self, query_tokens, initial_scores, pseudofeedback_num_docs, pseudofeedback_alpha, pseudofeedback_beta):
-
-        top_docs = sorted(initial_scores.keys(), key=lambda doc_id: initial_scores[doc_id], reverse=True)[:pseudofeedback_num_docs]
-        query_tokens = Counter(query_tokens)
-        term_weights = defaultdict(float)
         
-
-        for doc_id in top_docs:
-            for term, count in self.doc_word_counts[doc_id].items():
-                term_weights[term] += count / pseudofeedback_num_docs
-
-        modified_query = {}
-        for term in set(query_tokens).union(term_weights):
-            original_weight = pseudofeedback_alpha * query_tokens[term]
-            feedback_weight = pseudofeedback_beta * term_weights[term]  
-            modified_query[term] = original_weight + feedback_weight  
-
-        return modified_query
-    
-
-    def query(self, query: str, pseudofeedback_num_docs=0, pseudofeedback_alpha=0.8,
-              pseudofeedback_beta=0.2, user_id=None) -> list[tuple[int, float]]:
-        query_tokens = [token for token in self.tokenize(query) if token not in self.stopwords]
-        query_parts=Counter(query_tokens)
-      
-        self.doc_word_counts = {}
-        document_scores = defaultdict(float)
-
-        for term in query_parts:
-            postings = self.index.get_postings(term)
-            for doc_id, _ in postings:
-                if doc_id not in self.doc_word_counts:
-                    self.doc_word_counts[doc_id] = self.processed_docs[doc_id]
-                    score = self.scorer.score(doc_id, self.doc_word_counts[doc_id], query_parts)
-                    document_scores[doc_id] = score
-
-
-        if pseudofeedback_num_docs > 0:
-            query_parts = self._modify_query_with_pseudofeedback(query_tokens,document_scores, 
-                                                                    pseudofeedback_num_docs, 
-                                                                    pseudofeedback_alpha, 
-                                                                    pseudofeedback_beta)
-
-            for term in query_parts:
-                postings = self.index.get_postings(term)
-                for posting in postings:
-                    doc_id=posting[0]
-                    tokens = [token if token not in self.stopwords else None for token in self.tokenize(self.raw_text_dict[doc_id])]
-                    self.doc_word_counts[doc_id] = Counter(tokens)
-                    score = self.scorer.score(doc_id, self.doc_word_counts[doc_id], query_parts)
-                    document_scores[doc_id] = score
-        document_scores=sorted(document_scores.items(), key= lambda x:x[1], reverse=True)
-        ranked_docs = [{'doc_id': doc_id, 'score': score} for doc_id, score in document_scores]
-        return ranked_docs
-
-
-            
-
 
 class PersonalizedBM25(Ranker):
     def __init__(self, index, relevant_doc_index, parameters={'b': 0.75, 'k1': 1.2, 'k3': 8}):
