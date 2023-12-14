@@ -8,7 +8,7 @@ import numpy as np
 from document_preprocessor import RegexTokenizer
 from ranker import Ranker, TF_IDF, BM25, PivotedNormalization, CrossEncoderScorer
 import math
-from typing import Dict, List, Union, Set
+from typing import Dict, List, Union, Set, Tuple
 import json
 import pickle
 import os
@@ -17,7 +17,7 @@ from transformers import RobertaModel, RobertaTokenizer
 
 class L2RRanker:
     def __init__(self, document_index: InvertedIndex, title_index: InvertedIndex,
-                 document_preprocessor: RegexTokenizer, stopwords: set[str], ranker,
+                 document_preprocessor: RegexTokenizer, stopwords: Set[str], ranker,
                  feature_extractor: 'L2RFeatureExtractor',raw_text_dict=None, raw_title_dict=None ) -> None:
         self.document_index = document_index
         self.title_index = title_index
@@ -40,7 +40,7 @@ class L2RRanker:
                 self.processed_titles[doc_id] = Counter(title_tokens)
         
                    
-    def prepare_training_data(self, query_to_document_relevance_scores: dict[str, list[tuple[int, int]]]):
+    def prepare_training_data(self, query_to_document_relevance_scores: Dict[str, List[Tuple[int, int]]]):
         print("IN PREPARE TRAINING DATA")
         X = []
         y = []
@@ -75,7 +75,7 @@ class L2RRanker:
         return X, y, qgroups
 
     @staticmethod
-    def accumulate_doc_term_counts(index: InvertedIndex, query_parts: list[str]) -> Dict[int, Dict[str, int]]:
+    def accumulate_doc_term_counts(index: InvertedIndex, query_parts: List[str]) -> Dict[int, Dict[str, int]]:
 
         counts_term_doc = defaultdict(Counter)
         for token in query_parts: 
@@ -146,7 +146,7 @@ class L2RRanker:
         return modified_query
 
 
-    def query(self, query: str, pseudo_feedback_num_docs=0) -> list[tuple[int, float]]:
+    def query(self, query: str, pseudo_feedback_num_docs=0) -> List[Tuple[int, float]]:
         if not query: 
             return None
         if not query.strip():
@@ -214,7 +214,7 @@ class L2RRanker:
 
         return ranked_docs
         
-    def vector_query(self, query: str, docid_to_index, pseudo_feedback_num_docs=0) -> list[tuple[int, float]]:
+    def vector_query(self, query: str, docid_to_index, pseudo_feedback_num_docs=0) -> List[Tuple[int, float]]:
         if not query: 
             return None
         if not query.strip():
@@ -272,9 +272,9 @@ class L2RRanker:
     
 class L2RFeatureExtractor:
     def __init__(self, document_index: InvertedIndex, title_index: InvertedIndex,
-                 doc_category_info: dict[int, list[str]],
-                 document_preprocessor: RegexTokenizer, stopwords: set[str],
-                 recognized_categories: set[str],
+                 doc_category_info: Dict[int, List[str]],
+                 document_preprocessor: RegexTokenizer, stopwords: Set[str],
+                 recognized_categories: Set[str],
                  ce_scorer: CrossEncoderScorer) -> None:
             
         self.document_index = document_index
@@ -310,7 +310,7 @@ class L2RFeatureExtractor:
         except KeyError:
             return 1  
 
-    def get_tf(self, index: InvertedIndex, docid: int, word_counts: dict[str, int], query_parts: list[str]) -> float:
+    def get_tf(self, index: InvertedIndex, docid: int, word_counts: Dict[str, int], query_parts: List[str]) -> float:
         total_tf = 0
         for term in query_parts:
             total_tf += math.log(word_counts.get(term, 0) + 1)
@@ -415,8 +415,8 @@ class L2RFeatureExtractor:
         return self.ce_scorer.score(docid, query)
 
 
-    def generate_features(self, docid: int, doc_word_counts: dict[str, int],
-                          title_word_counts: dict[str, int], query_parts: list[str],
+    def generate_features(self, docid: int, doc_word_counts: Dict[str, int],
+                          title_word_counts: Dict[str, int], query_parts: List[str],
                           query: str,  raw_text_dict=None) -> list:
 
         feature_vector = []

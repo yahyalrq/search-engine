@@ -9,10 +9,11 @@ import matplotlib.pyplot as plt"""
 from collections import defaultdict
 from tqdm import tqdm
 
+from typing import Dict, List, Union, Set, Tuple
 
 
 class Tokenizer:
-    def __init__(self, lowercase: bool = True, multiword_expressions: list[str] = None) -> None:
+    def __init__(self, lowercase: bool = True, multiword_expressions: List[str] = None) -> None:
         """
         A generic class for objects that turn strings into sequences of tokens.
         A tokenizer can support different preprocessing options or use different methods
@@ -26,7 +27,7 @@ class Tokenizer:
         """
         # TODO: Save arguments that are needed as fields of this class
 
-    def find_and_replace_mwes(self, input_tokens: list[str]) -> list[str]:
+    def find_and_replace_mwes(self, input_tokens: List[str]) -> List[str]:
         """
         IGNORE THIS PART; NO NEED TO IMPLEMENT THIS SINCE NO MULTI-WORD EXPRESSION PROCESSING IS TO BE USED.
         For the given sequence of tokens, finds any recognized multi-word expressions in the sequence
@@ -41,7 +42,7 @@ class Tokenizer:
         # NOTE: You shouldn't implement this in homework 
         raise NotImplemented("MWE is not supported")
     
-    def postprocess(self, input_tokens: list[str]) -> list[str]:
+    def postprocess(self, input_tokens: List[str]) -> List[str]:
         """
         Performs any set of optional operations to modify the tokenized list of words such as
         lower-casing and returns the modified list of tokens.
@@ -59,7 +60,7 @@ class Tokenizer:
         return re_tokens
 
     
-    def tokenize(self, text: str) -> list[str]:
+    def tokenize(self, text: str) -> List[str]:
         """
         Splits a string into a list of tokens and performs all required postprocessing steps.
 
@@ -73,7 +74,7 @@ class Tokenizer:
 
 
 class RegexTokenizer(Tokenizer):
-    def __init__(self, token_regex="\w+", lowercase: bool = True, multiword_expressions: list[str] = None) -> None:
+    def __init__(self, token_regex="\w+", lowercase: bool = True, multiword_expressions: List[str] = None) -> None:
         """
         Uses NLTK's RegexpTokenizer to tokenize a given string.
 
@@ -88,7 +89,7 @@ class RegexTokenizer(Tokenizer):
         # TODO: Save a new argument that is needed as a field of this class
         # TODO: Initialize the NLTK's RegexpTokenizer 
 
-    def tokenize(self, text: str) -> list[str]:
+    def tokenize(self, text: str) -> List[str]:
         self.tokenizer = RegexpTokenizer('\\w+')
         tokens = self.tokenizer.tokenize(text)
         tokens=self.postprocess(tokens)
@@ -121,7 +122,7 @@ class Doc2QueryAugmenter:
 
         # TODO: Create the dense tokenizer and query generation model using HuggingFace transformers
 
-    def get_queries(self, document: str, n_queries: int = 5, prefix_prompt: str = '') -> list[str]:
+    def get_queries(self, document: str, n_queries: int = 5, prefix_prompt: str = '') -> List[str]:
         """
         Steps
             1. Use the dense tokenizer/encoder to create the dense document vector.

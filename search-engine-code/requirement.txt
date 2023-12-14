@@ -1,0 +1,15 @@
+streamlit
+torch
+tqdm
+math
+nltk
+dotenv
+orjson
+bisect
+gzip
+shelve
+lightgbm
+pandas
+multiprocessing
+numpy
+pickle

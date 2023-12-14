@@ -9,7 +9,8 @@ import math
 from document_preprocessor import RegexTokenizer
 import re
 from nltk.tokenize import RegexpTokenizer
-    
+from typing import Dict, List, Union, Set, Tuple
+
 class Ranker:
     """
     The ranker class is responsible for generating a list of documents for a given query, ordered by their scores
@@ -17,8 +18,8 @@ class Ranker:
     A Ranker can be configured with any RelevanceScorer.
     """
     # TODO: implement this class properly. This is responsible for returning a list of sorted relevant documents.
-    def __init__(self, index: InvertedIndex, document_preprocessor, stopwords: set[str], 
-                 scorer, raw_text_dict: dict[int,str]) -> None:
+    def __init__(self, index: InvertedIndex, document_preprocessor, stopwords: Set[str], 
+                 scorer, raw_text_dict: Dict[int,str]) -> None:
         """
         Initializes the state of the Ranker object.
 
@@ -187,7 +188,7 @@ class TF_IDF(Ranker):
 
 
 class CrossEncoderScorer:
-    def __init__(self, raw_text_dict: dict[int, str], cross_encoder_model_name: str = 'cross-encoder/msmarco-MiniLM-L6-en-de-v1') -> None:
+    def __init__(self, raw_text_dict: Dict[int, str], cross_encoder_model_name: str = 'cross-encoder/msmarco-MiniLM-L6-en-de-v1') -> None:
         """
         Initializes a CrossEncoderScorer object.
         Args:
@@ -231,7 +232,7 @@ class RelevanceScorer:
     def __init__(self, index: InvertedIndex, parameters) -> None:
         raise NotImplementedError
 
-    def score(self, docid: int, doc_word_counts: dict[str, int], query_word_counts: dict[str, int]) -> float:
+    def score(self, docid: int, doc_word_counts: Dict[str, int], query_word_counts: Dict[str, int]) -> float:
         """
         Returns a score for how relevance is the document for the provided query.
 
@@ -255,7 +256,7 @@ class WordCountCosineSimilarity(Ranker):
         self.index = index
         self.parameters = parameters
 
-    def score(self, docid: int, doc_word_counts: dict[str, int], query_parts: list[str]):
+    def score(self, docid: int, doc_word_counts: Dict[str, int], query_parts: List[str]):
         # 1. Find the dot product of the word count vector of the document and the word count vector of the query
 
         # 2. Return the score
@@ -267,7 +268,7 @@ class DirichletLM(RelevanceScorer):
         self.index = index
         self.parameters = parameters
 
-    def score(self, docid: int, doc_word_counts: dict[str, int], query_parts: list[str]):
+    def score(self, docid: int, doc_word_counts: Dict[str, int], query_parts: List[str]):
         # 1. Get necessary information from index
 
         # 2. Compute additional terms to use in algorithm

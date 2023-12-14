@@ -1,8 +1,9 @@
 import math
 import csv
 import math
+from typing import Dict, List, Union, Set, Tuple
 
-def map_score(search_result_relevances: list[int], cut_off=10) -> float:
+def map_score(search_result_relevances: List[int], cut_off=10) -> float:
     if not search_result_relevances:
         return 0.0
 
@@ -24,8 +25,8 @@ def map_score(search_result_relevances: list[int], cut_off=10) -> float:
     return average_precision
 
 
-def ndcg_score(search_result_relevances: list[float], 
-               ideal_relevance_score_ordering: list[float], cut_off=10) -> float:
+def ndcg_score(search_result_relevances: List[float], 
+               ideal_relevance_score_ordering: List[float], cut_off=10) -> float:
     def dcg(relevances, cut_off):
         dcg_val = relevances[0]
         for idx, rel in enumerate(relevances[1:cut_off], 2):
@@ -42,7 +43,7 @@ def ndcg_score(search_result_relevances: list[float],
     return ndcg_val
 
 
-def run_relevance_tests(relevance_data_filename: str, ranker) -> dict[str, float]:
+def run_relevance_tests(relevance_data_filename: str, ranker) -> Dict[str, float]:
     # TODO: Implement running relevance test for the search system for multiple queries.
     """
     Measures the performance of the IR system using metrics, such as MAP and NDCG.
