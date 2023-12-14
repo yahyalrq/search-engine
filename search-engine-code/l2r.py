@@ -37,7 +37,7 @@ class L2RRanker:
                 title_tokens = [token for token in self.document_preprocessor.tokenize(self.raw_title_dict[doc_id]) if token not in self.stopwords]
                 self.processed_docs[doc_id] = Counter(tokens)
                 self.processed_titles[doc_id] = Counter(title_tokens)
-
+        
                    
     def prepare_training_data(self, query_to_document_relevance_scores: dict[str, list[tuple[int, int]]]):
         print("IN PREPARE TRAINING DATA")
@@ -285,6 +285,7 @@ class L2RFeatureExtractor:
         self.stats=self.document_index.get_statistics()
         self.recognized_categories= set(self.stats["all_genres"])
 
+
     def get_article_length(self, docid: int) -> int:
         try:
             return self.document_index.statistics['docmap'][docid]['total_tokens']
@@ -394,11 +395,8 @@ class L2RFeatureExtractor:
     def get_document_categories(self, docid: int) -> list:
 
         categories = self.doc_category_info.get(docid, [])
-        return [1 if category in categories else 0 for category in self.recognized_categories]
-
-    
-
-
+        score= [1 if category in categories else 0 for category in self.recognized_categories]
+        return score
 
 
     def get_cross_encoder_score(self, docid: int, query: str) -> float:

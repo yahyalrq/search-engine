@@ -79,11 +79,9 @@ class VectorFeatureExtractor:
             return 1  
 
     def get_tf(self, index: InvertedIndex, docid: int, word_counts: dict[str, int], query_parts: list[str]) -> float:
-        print("QUERY_PARTS", )
         total_tf = 0
         for term in query_parts:
             total_tf += math.log(word_counts.get(term, 0) + 1)
-        print("TOTAL_TF", total_tf / (len(query_parts) if len(query_parts) > 0 else 1))
         return total_tf / (len(query_parts) if len(query_parts) > 0 else 1)
 
 
@@ -238,8 +236,8 @@ class VectorFeatureExtractor:
 
         text = raw_text_dict.get(docid, "")  
         roberta_features = self.get_roberta_features(text)
+        roberta_features= roberta_features.view(-1)
         feature_vector.extend([feature for feature in roberta_features.tolist()])
-
         return feature_vector
 
 

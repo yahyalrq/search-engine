@@ -165,13 +165,15 @@ class Indexer:
         collection = db[collection_name]
         title_text_dict={}
         raw_text_dict = {}
+        doc_category_info={}
         for document in collection.find():
             docid=str(document["_id"])
             text_description = document.get(text_key, '')
             text_title = document.get(title_key, '')
             raw_text_dict[docid] = text_description
             title_text_dict[docid] = text_title
-        return raw_text_dict, title_text_dict
+            doc_category_info[docid]=document.get("genres","")
+        return raw_text_dict, title_text_dict, doc_category_info
     
     @staticmethod
     def create_index(index_type: IndexType, mongo_connection_string: str,

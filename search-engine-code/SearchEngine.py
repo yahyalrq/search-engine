@@ -18,7 +18,6 @@ from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
 from l2r import LambdaMART, L2RFeatureExtractor, L2RRanker
 import shelve
-import os
 from indexing import IndexType, InvertedIndex, BasicInvertedIndex, Indexer
 import orjson
 import pickle
@@ -29,7 +28,7 @@ load_dotenv()
 
 mongo_key=os.getenv("Mongo_KEY")
 
-class OurRanker:
+class SearchEngine:
     def __init__(self) -> None:
         self.preprocessor = RegexTokenizer('\w+')
         self.stopwords = set()
@@ -70,14 +69,14 @@ class OurRanker:
             
             self.author_index.save(mongo_key,  "Processed_Data", "AuthorIndex")
 
-        self.raw_text_dict, self.raw_title_dict=Indexer.build_raw_textandtitle_dict(mongo_key,"Processed_Data","processed_books")
+        self.raw_text_dict, self.raw_title_dict, self.doc_category_info=Indexer.build_raw_textandtitle_dict(mongo_key,"Processed_Data","processed_books")
 
     def create_new_index(self) -> InvertedIndex:
         index = BasicInvertedIndex()
         return index 
     
 
-    def query_with_l2r_with_BM25(self):
+    def query_with_l2r_with_BM25(self, query):
 
         self.ce_scorer = CrossEncoderScorer(self.raw_text_dict)
 
@@ -98,31 +97,22 @@ class OurRanker:
     
         l2r.train('../relevancescorestrain.csv')
         doc_rankings = {}
-        query="Best Books"
-        print("IN QUERY", query)
         ranked_docs = l2r.query(query)
         print("Finished querying", query)
         doc_ids = [doc['doc_id'] for doc in ranked_docs]
         doc_rankings[query] = doc_ids
-        with open('doc_rankings.json', 'w') as json_file:
-            json.dump(doc_rankings, json_file, indent=4)
-        return doc_rankings
+        return doc_rankings[query][0:100]
     
-    def query_with_BM25(self):
+    def query_with_BM25(self, query):
 
         self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, BM25(self.main_index), self.raw_text_dict)
         doc_rankings = {}
-        query="best"
-        print("IN QUERY", query)
         ranked_docs = self.ranker.query(query)
-        print("Finished querying", query)
         doc_ids = [doc['doc_id'] for doc in ranked_docs]
         doc_rankings[query] = doc_ids
-        with open('doc_rankings.json', 'w') as json_file:
-            json.dump(doc_rankings, json_file, indent=4)
-        return doc_rankings
+        return doc_rankings[query][0:100]
     
     
-problem=OurRanker()
+#problem=SearchEngine()
 #problem.query_with_l2r_with_BM25()
-problem.query_with_BM25()
+#problem. query_with_l2r_with_BM25("best books")

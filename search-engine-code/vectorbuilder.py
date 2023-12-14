@@ -70,7 +70,7 @@ class VectorRunner:
             
             self.author_index.save(mongo_key,  "Processed_Data", "AuthorIndex")
 
-        self.raw_text_dict, self.raw_title_dict=Indexer.build_raw_textandtitle_dict(mongo_key,"Processed_Data","processed_books")
+        self.raw_text_dict, self.raw_title_dict,  self.doc_category_info=Indexer.build_raw_textandtitle_dict(mongo_key,"Processed_Data","processed_books")
 
     def create_new_index(self) -> InvertedIndex:
         index = BasicInvertedIndex()
