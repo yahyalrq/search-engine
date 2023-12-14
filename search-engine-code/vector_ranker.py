@@ -3,6 +3,7 @@ from numpy import ndarray
 from ranker import Ranker
 import numpy as np
 import torch
+from typing import Dict, List, Union, Set, Tuple
 
 class VectorRanker(Ranker):
     """  
@@ -18,7 +19,7 @@ class VectorRanker(Ranker):
         Using zip(encoded_docs, row_to_docid) should give you the mapping between the docid and the embedding.
         """
     def __init__(self, bi_encoder_model_name: str, encoded_docs: ndarray,
-                 row_to_docid: list[int]) -> None:
+                 row_to_docid:List[int]) -> None:
         self.bi_encoder = SentenceTransformer(bi_encoder_model_name, device='cpu')
         self.encoded_docs = encoded_docs
         self.docid_to_row = {doc_id: idx for idx, doc_id in enumerate(row_to_docid)}
@@ -26,7 +27,7 @@ class VectorRanker(Ranker):
 
 
     def query(self, query: str, pseudofeedback_num_docs=0,
-              pseudofeedback_alpha=0.8, pseudofeedback_beta=0.2, user_id=None) -> list[tuple[int, float]]:
+              pseudofeedback_alpha=0.8, pseudofeedback_beta=0.2, user_id=None) -> List[Tuple[int, float]]:
         """
         Encodes the query and then scores the relevance of the query with all the documents.
 

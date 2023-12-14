@@ -10,6 +10,8 @@ from bisect import insort
 import orjson
 from dotenv import load_dotenv
 import os
+from typing import Dict, List, Union, Set, Tuple
+
 from bson import ObjectId
 load_dotenv()
 from pymongo import MongoClient
@@ -43,7 +45,7 @@ class BasicInvertedIndex(InvertedIndex):
         for term in terms_to_delete:
             del self.index[term]
 
-    def add_doc(self, docid: int, tokens: list[str], genres: list[str]) -> None:
+    def add_doc(self, docid: int, tokens: List[str], genres: List[str]) -> None:
         token_counts = Counter(tokens)
 
         for token, freq in token_counts.items():
@@ -61,13 +63,13 @@ class BasicInvertedIndex(InvertedIndex):
 
         return (tokens, dict(token_counts))
 
-    def get_postings(self, term: str) -> list[tuple[int, int]]:
+    def get_postings(self, term: str) -> List[Tuple[int, int]]:
         return self.index.get(term, [])
 
-    def get_doc_metadata(self, doc_id: int) -> dict[str, int]:
+    def get_doc_metadata(self, doc_id: int) -> Dict[str, int]:
         return self.statistics['docmap'].get(doc_id, {})
 
-    def get_term_metadata(self, term: str) -> dict[str, int]:
+    def get_term_metadata(self, term: str) -> Dict[str, int]:
         frequency = []
         for doc_id, freq in self.index.get(term, []):
             frequency.append(freq)
@@ -179,7 +181,7 @@ class Indexer:
     @staticmethod
     def create_index(index_type: IndexType, mongo_connection_string: str,
                      database_name: str, collection_name: str,
-                     document_preprocessor: RegexTokenizer, stopwords: set[str],
+                     document_preprocessor: RegexTokenizer, stopwords: Set[str],
                      minimum_word_frequency: int, text_key="description",
                      max_docs: int = -1) -> InvertedIndex:
         client = MongoClient(mongo_connection_string)
@@ -216,7 +218,7 @@ class Indexer:
     @staticmethod
     def create_index_tempuser(index_type: IndexType, mongo_connection_string: str, 
                             book_user_ids: list, database_name: str, collection_name: str,
-                            document_preprocessor: RegexTokenizer, stopwords: set[str],
+                            document_preprocessor: RegexTokenizer, stopwords: Set[str],
                             minimum_word_frequency: int, text_key="description",
                             max_docs: int = -1) -> InvertedIndex:
         client = MongoClient(mongo_connection_string)

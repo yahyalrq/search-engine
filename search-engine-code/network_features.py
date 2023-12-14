@@ -5,7 +5,8 @@ from pandas import DataFrame
 from tqdm import tqdm
 from sknetwork.data import from_edge_list
 import gzip
-from typing import Dict, List, Union, Set
+from typing import Dict, List, Union, Set, Tuple
+
 
 
 class NetworkFeatures:
@@ -74,7 +75,7 @@ class NetworkFeatures:
 
 
         
-    def calculate_page_rank(self, graph, damping_factor=0.85, iterations=100, weights=None) -> list[float]:
+    def calculate_page_rank(self, graph, damping_factor=0.85, iterations=100, weights=None) -> List[float]:
         """
         Calculates the PageRank scores for the provided network and
         returns the PageRank values for all nodes.
@@ -97,7 +98,7 @@ class NetworkFeatures:
             results = pagerank.fit_transform(t_graph)
         return results
 
-    def calculate_hits(self, graph) -> tuple[list[float], list[float]]:
+    def calculate_hits(self, graph) -> Tuple[List[float], List[float]]:
         """
         Calculates the hub scores and authority scores using the HITS algorithm
         for the provided network and returns the two lists of scores as a tuple.

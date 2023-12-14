@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Dict, List, Union, Set, Tuple
 
 class QueryModel(BaseModel):
     query:str
@@ -27,5 +28,5 @@ class BaseSearchEngine():
     def index(self):
         pass
 
-    def search(self, query: str) -> list[SearchResponse]:
+    def search(self, query: str) -> List[SearchResponse]:
         pass

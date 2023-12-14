@@ -11,6 +11,8 @@ import math
 from typing import Dict, List, Union, Set
 import torch
 from transformers import RobertaModel, RobertaTokenizer
+from typing import Dict, List, Union, Set, Tuple
+
 
 class VectorBuilder:
     def __init__(self, document_preprocessor: RegexTokenizer, feature_extractor: 'L2RFeatureExtractor', raw_text_dict=None, raw_title_dict=None, stopwords=None ) -> None:
@@ -42,9 +44,9 @@ class VectorBuilder:
     
 class VectorFeatureExtractor:
     def __init__(self, document_index: InvertedIndex, title_index: InvertedIndex,
-                 doc_category_info: dict[int, list[str]],
-                 document_preprocessor: RegexTokenizer, stopwords: set[str],
-                 recognized_categories: set[str],
+                 doc_category_info: Dict[int, List[str]],
+                 document_preprocessor: RegexTokenizer, stopwords: Set[str],
+                 recognized_categories: Set[str],
                  ce_scorer: CrossEncoderScorer) -> None:
             
         self.document_index = document_index
@@ -78,7 +80,7 @@ class VectorFeatureExtractor:
         except KeyError:
             return 1  
 
-    def get_tf(self, index: InvertedIndex, docid: int, word_counts: dict[str, int], query_parts: list[str]) -> float:
+    def get_tf(self, index: InvertedIndex, docid: int, word_counts: Dict[str, int], query_parts: List[str]) -> float:
         total_tf = 0
         for term in query_parts:
             total_tf += math.log(word_counts.get(term, 0) + 1)
@@ -177,8 +179,8 @@ class VectorFeatureExtractor:
         return [1 if category in categories else 0 for category in self.recognized_categories]
 
 
-    def generate_features(self, docid: int, doc_word_counts: dict[str, int],
-                          title_word_counts: dict[str, int], query_parts: list[str], raw_text_dict=None) -> list:
+    def generate_features(self, docid: int, doc_word_counts: Dict[str, int],
+                          title_word_counts: Dict[str, int], query_parts: List[str], raw_text_dict=None) -> list:
 
         feature_vector = []
         feature_vector.append(self.get_article_length(docid))
