@@ -9,6 +9,7 @@ import pandas as pd
 from pymongo import UpdateOne
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from bson import ObjectId
 
 class Recommender:
     def __init__(self, db_name, collection_name) -> None:
@@ -30,6 +31,7 @@ class Recommender:
         # Fetch book vectors for given book IDs from mongo
         db = self.client[self.db_name]
         collection = db[self.collection_name]
+        book_ids = [str(docid) for docid in book_ids]
         query = {'doc_id': {'$in': book_ids}}
         book_vectors = collection.find(query)
         return list(book_vectors)
@@ -66,7 +68,9 @@ class Recommender:
             list_of_top_k_books.append(book_id)
             search_engine_scores.append(score)
         # Fetch book vectors for user books and search engine results
+        print("list_of_book_ids_for_user", list_of_book_ids_for_user)
         user_books = self.get_book_vectors(list_of_book_ids_for_user)
+        print("user_books", user_books)
         search_books = self.get_book_vectors(list_of_top_k_books)
         # Extract features and calculate cosine similarities
         user_books_features = [book['vector'] for book in user_books]

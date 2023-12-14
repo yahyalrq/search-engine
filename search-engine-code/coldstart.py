@@ -9,7 +9,12 @@ from app import app
 from bson import ObjectId
 from streamlit_carousel import carousel
 
-
+if 'selected_books_ids' not in st.session_state:
+        st.session_state['selected_books_ids'] = []
+if 'user_preference' not in st.session_state:
+    st.session_state['user_preference'] = []
+if "carousel_items" not in st.session_state:
+    st.session_state['carousel_items'] = []
 
 # Determine the absolute path of the parent directory
 #parent_dir = os.path.dirname(os.path.abspath(__file__))
@@ -93,7 +98,6 @@ def book_carousel_selection(books_by_genre):
                                 books_selected.append(book['_id'])
                             else:
                                 books_selected.remove(book['_id'])
-
     return books_selected
 
 
@@ -101,7 +105,6 @@ def book_carousel_selection(books_by_genre):
 def retrieve_books_by_ids(collection, book_ids):
     # Convert string IDs to ObjectIDs if necessary
     object_ids = [ObjectId(id) for id in book_ids]
-    
     projection = {"_id": 1, "book_id": 1, "title": 1, "author": 1, 
                   "language": 1, "publisher": 1, "year_published": 1, "description": 1}
     books = collection.find({"_id": {"$in": object_ids}}, projection)
@@ -111,20 +114,38 @@ def retrieve_books_by_ids(collection, book_ids):
 
 def book_carousel_retrieved(books):
     # Create a list of items for the carousel
+    links = []
     carousel_items = []
     for book in books:
-        item = dict(title=str(book['title']),text=str(book['author']), interval=None,img= "https://www.mobileread.com/forums/attachment.php?s=d9790f523ff1e127cf8e7160d8e3e671&attachmentid=111305&d=1378926764",)
+        item = dict(title=str(book['title']),text=book['author'],img= "https://www.mobileread.com/forums/attachment.php?s=d9790f523ff1e127cf8e7160d8e3e671&attachmentid=111305&d=1378926764")
         carousel_items.append(item)
+        links.append( book['book_id'])
     # Display the carousel in the Streamlit app
-    return carousel_items
+    return carousel_items,links
 
 
 def main(_app):
-    if 'selected_books_ids' not in st.session_state:
-        st.session_state['selected_books_ids'] = []
     st.title("Welcome to the Book Recommendation App")
+    books_selected= st.session_state['selected_books_ids']
     user_choice = st.radio("Choose your option:", ('Enter as Guest', 'Get Book Recommendations'))
-    if user_choice == 'Get Book Recommendations':
+    if user_choice == 'Get Book Recommendations' and st.session_state['user_preference']:
+        user_specific_input = st.text_input("Searching for Book ?")
+        if st.button("Search for books recomended: "):
+            results = _app.query(user_specific_input, books_selected)
+            book_ids = [docid for docid, _ in results]
+            ranked_books= retrieve_books_by_ids(collection,book_ids )
+            carousel_items, links= book_carousel_retrieved(ranked_books)
+            i=0
+            for elem in carousel_items:
+                st.write("Book Title:", elem['title'], " - Author: ",elem['text'])
+                st.write("https://www.goodreads.com/"+links[i]+ "\n\n")
+                i+=1
+            st.session_state['carousel_items']=carousel_items
+        if st.session_state['carousel_items'] !=[]:
+            carousel(items=st.session_state['carousel_items'], width=1)
+            st.session_state['carousel_items']=[]
+           
+    elif user_choice == 'Get Book Recommendations':
         genres = retrieve_genres(collection)  # Fetch genres
         # Display genres for selection
         selected_genres = st.multiselect("Select your preferred genres", genres)
@@ -136,32 +157,50 @@ def main(_app):
             st.subheader(f"Select the books you are more interrested by :")
             book_categories = retrieve_books(selected_genres, collection)
             books_selected = book_carousel_selection(book_categories)
+            
         if st.button('Submit Final Selections'):
             # Now process the selected book ids
             st.write("Selected Book IDs:", books_selected)
         user_specific_input = st.text_input("Searching for Book ?")
-            
         if st.button("Search for books recomended: "):
             results = _app.query(user_specific_input, books_selected)
             book_ids = [docid for docid, _ in results]
             ranked_books= retrieve_books_by_ids(collection,book_ids )
-            carousel_items  = book_carousel_retrieved(ranked_books)
-            if carousel_items:
-                carousel(items=carousel_items, width=1)
-        
+            carousel_items , links = book_carousel_retrieved(ranked_books)
+            i=0
+            for elem in carousel_items:
+                st.write("Book Title:", elem['title'], " - Author: ",elem['text'])
+                st.write("https://www.goodreads.com/"+links[i]+ "\n\n")
+                i+=1
+            st.session_state['carousel_items']=carousel_items
+            #if carousel_items:
+               # carousel(items=carousel_items, width=1)
+               # st.session_state['user_preference'] = books_selected
                 # Display books and let user select, then process selection
+        if st.session_state['carousel_items'] !=[]:
+            carousel(items=st.session_state['carousel_items'], width=1)
+            st.session_state['carousel_items']=[]
+            st.session_state['user_preference']= books_selected
+            
     elif user_choice == 'Enter as Guest':
+        #carousel_items=[]
         st.write("Welcome, guest! Enjoy the general content.")
         user_input = st.text_input("Searching for Book ?")
         if st.button("Search for books: "):
             results = _app.query(user_input)
             book_ids = [docid for docid, _ in results]
             ranked_books= retrieve_books_by_ids(collection,book_ids )
-            carousel_items=book_carousel_retrieved(ranked_books)
-            if carousel_items:
-                for elem in carousel_items:
-                    st.write("Book Title:", elem['title'], " - Author: ",elem['text'])
-                carousel(items=carousel_items, width=1)
+            carousel_items, links=book_carousel_retrieved(ranked_books)
+            i=0
+            for elem in carousel_items:
+                st.write("Book Title:", elem['title'], " - Author: ",elem['text'])
+                st.write("https://www.goodreads.com/"+links[i]+ "\n\n")
+                i+=1
+
+            st.session_state['carousel_items']=carousel_items
+        if st.session_state['carousel_items'] !=[]:
+            carousel(items=st.session_state['carousel_items'], width=1)
+            st.session_state['carousel_items']=[]
 
 # Run the app
 if __name__ == "__main__":
