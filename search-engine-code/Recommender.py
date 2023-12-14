@@ -58,12 +58,16 @@ class Recommender:
     
     def get_recommendations(self, list_of_book_ids_for_user, search_engine_results):
         # Extract book IDs and search engine scores from the tuples
-        list_of_top_k_books, search_engine_scores = zip(*search_engine_results)
-
+        list_of_top_k_books = []
+        search_engine_scores = []
+        for book in search_engine_results:
+            book_id = book[0]
+            score = book[1]
+            list_of_top_k_books.append(book_id)
+            search_engine_scores.append(score)
         # Fetch book vectors for user books and search engine results
         user_books = self.get_book_vectors(list_of_book_ids_for_user)
         search_books = self.get_book_vectors(list_of_top_k_books)
-
         # Extract features and calculate cosine similarities
         user_books_features = [book['vector'] for book in user_books]
         search_books_features = [book['vector'] for book in search_books]
@@ -109,10 +113,3 @@ def get_sample_books():
         sample_book_ids.append(str(book["_id"]))
     return sample_book_ids
 
-book_ids = get_sample_books()
-print(book_ids[:5])
-recommender = Recommender("Processed_Data", "Vectorized_books")
-user_book_ids = book_ids[:5]
-top_100_book_ids = book_ids[5:]
-results = recommender.get_recommendations(user_book_ids, top_100_book_ids)
-print(results)

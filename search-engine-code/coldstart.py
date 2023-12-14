@@ -115,7 +115,10 @@ def main():
                 # Display books and let user select, then process selection
     elif user_choice == 'Enter as Guest':
         st.write("Welcome, guest! Enjoy the general content.")
-        # Display general content or popular books
+        user_input = st.text_input("Enter your name")
+        if st.button("Search for books: "):
+            results = app.querry(user_input)
+            print("WAZAAAAAAAA; ",results)
 
 # Run the app
 if __name__ == "__main__":
