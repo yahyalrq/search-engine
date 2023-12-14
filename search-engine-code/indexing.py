@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 import os
 from typing import Dict, List, Union, Set, Tuple
 
+from bson import ObjectId
 load_dotenv()
-
+from pymongo import MongoClient
 
 
 class IndexType(Enum):
@@ -156,7 +157,7 @@ class OnDiskInvertedIndex(BasicInvertedIndex):
         self.shelve_filename = shelve_filename
         self.statistics['index_type'] = 'OnDiskInvertedIndex'
 
-from pymongo import MongoClient
+
 
 class Indexer:
     @staticmethod
@@ -213,3 +214,46 @@ class Indexer:
             if max_docs > 0 and doc_count >= max_docs:
                 break
         return index
+        
+    @staticmethod
+    def create_index_tempuser(index_type: IndexType, mongo_connection_string: str, 
+                            book_user_ids: list, database_name: str, collection_name: str,
+                            document_preprocessor: RegexTokenizer, stopwords: Set[str],
+                            minimum_word_frequency: int, text_key="description",
+                            max_docs: int = -1) -> InvertedIndex:
+        client = MongoClient(mongo_connection_string)
+        db = client[database_name]
+        collection = db[collection_name]
+
+        if index_type == IndexType.InvertedIndex:
+            index = BasicInvertedIndex()
+        else:
+            raise ValueError("Unsupported index type")
+        
+        object_ids = [ObjectId(id) for id in book_user_ids]
+
+        query_filter = {'_id': {'$in': object_ids}}
+
+        freqs = Counter()
+        for document in collection.find(query_filter):
+            tokens = document_preprocessor.tokenize(document.get(text_key, ''))
+            freqs.update(tokens)
+
+        stop_lower = {word.lower() for word in stopwords}
+        valid_tokens = set()
+        for token, count in freqs.items():
+            if count >= minimum_word_frequency and token.lower() not in stop_lower:
+                valid_tokens.add(token)
+
+        doc_count = 0
+        for document in collection.find(query_filter):
+            tokens = document_preprocessor.tokenize(document.get(text_key, ''))
+            token_set = [t if t in valid_tokens else None for t in tokens]
+            docid = str(document["_id"])
+            index.add_doc(docid, token_set, document["genres"])
+            doc_count += 1
+            if max_docs > 0 and doc_count >= max_docs:
+                break
+
+        return index
+

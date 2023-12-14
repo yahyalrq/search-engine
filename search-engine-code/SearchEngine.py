@@ -12,7 +12,7 @@ import json
 from document_preprocessor import RegexTokenizer
 from collections import Counter, defaultdict
 from indexing import IndexType, Indexer
-from ranker import Ranker, BM25,CrossEncoderScorer
+from ranker import Ranker, BM25,CrossEncoderScorer, PersonalizedBM25
 from network_features import NetworkFeatures
 from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
@@ -78,14 +78,18 @@ class SearchEngine:
         return index 
     
 
-    def query_with_l2r_with_BM25(self, query):
+    def query_with_l2r_with_BM25(self, query, personalized=False,user_book_ids=None):
 
         self.ce_scorer = CrossEncoderScorer(self.raw_text_dict)
 
         self.recognized_categories = set([])
-
-        self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, BM25(self.main_index), self.raw_text_dict)
-
+        if personalized:
+            self.user_index=Indexer.create_index_tempuser(IndexType.InvertedIndex, mongo_key,user_book_ids,"Processed_Data", "processed_books",
+                    RegexTokenizer('\\w+'), set("../stopwords.txt"),
+                    0, text_key="description")
+            self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, PersonalizedBM25(self.main_index, self.user_index), self.raw_text_dict)
+        else:
+            self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, BM25(self.main_index), self.raw_text_dict)
         self.fe = L2RFeatureExtractor(self.main_index,
                                       self.title_index,
                                       self.doc_category_info,
@@ -103,7 +107,7 @@ class SearchEngine:
         print("Finished querying", query)
         doc_ids = [doc['doc_id'] for doc in ranked_docs]
         doc_rankings[query] = doc_ids
-        return doc_rankings[query][0:100]
+        return doc_rankings[query][0:10]
     
     def query_with_BM25(self, query):
 
@@ -112,8 +116,42 @@ class SearchEngine:
         ranked_docs = self.ranker.query(query)
         doc_ids = [doc['doc_id'] for doc in ranked_docs]
         doc_rankings[query] = doc_ids
-        return doc_rankings[query][0:100]
+        return doc_rankings[query][0:10]
     
+    def query_with_l2r_with_BM25_forplot(self, query, personalized=False,user_book_ids=None):
+
+        self.ce_scorer = CrossEncoderScorer(self.raw_text_dict)
+
+        self.recognized_categories = set([])
+        if personalized:
+            self.user_index=Indexer.create_index_tempuser(IndexType.InvertedIndex, mongo_key,user_book_ids,"Processed_Data", "processed_books",
+                    RegexTokenizer('\\w+'), set("../stopwords.txt"),
+                    0, text_key="description")
+            self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, PersonalizedBM25(self.main_index, self.user_index), self.raw_text_dict)
+        else:
+            self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, BM25(self.main_index), self.raw_text_dict)
+        self.fe = L2RFeatureExtractor(self.main_index,
+                                        self.title_index,
+                                        self.doc_category_info,
+                                        self.preprocessor,
+                                        self.stopwords,
+                                        self.recognized_categories,
+                                        self.ce_scorer)
+
+        l2r = L2RRanker(self.main_index, self.title_index, self.preprocessor,
+                        self.stopwords, self.ranker, self.fe,self.raw_text_dict, self.raw_title_dict)
+
+        l2r.train('../relevancescorestrain.csv')
+        doc_rankings = {}
+        ranked_docs = l2r.query(query)
+        return ranked_docs
+    
+    def query_with_BM25_forplot(self, query):
+
+        self.ranker = Ranker(self.main_index, self.preprocessor,self.stopwords, BM25(self.main_index), self.raw_text_dict)
+        doc_rankings = {}
+        ranked_docs = self.ranker.query(query)
+        return ranked_docs    
     
 #problem=SearchEngine()
 #problem.query_with_l2r_with_BM25()

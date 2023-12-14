@@ -166,8 +166,8 @@ class L2RRanker:
                     if doc_id not in doc_word_counts:
                         doc_word_counts[doc_id] = self.processed_docs[doc_id]
                         title_word_counts[doc_id] = self.processed_titles[doc_id]
-                        score=self.feature_extractor.get_BM25_score(doc_id, doc_word_counts.get(doc_id, {}), query_parts)
-                        #score=self.scorer.scorer.score(doc_id, doc_word_counts.get(doc_id, {}), query_parts)
+                        #score=self.feature_extractor.get_BM25_score(doc_id, doc_word_counts.get(doc_id, {}), query_parts)
+                        score=self.scorer.scorer.score(doc_id, doc_word_counts.get(doc_id, {}), query_parts)
                         document_scores[doc_id] = score
 
                         

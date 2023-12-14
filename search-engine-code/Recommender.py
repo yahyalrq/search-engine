@@ -32,29 +32,23 @@ class Recommender:
         book_vectors = collection.find(query)
         return list(book_vectors)
     
-    def get_recommendations(self, list_of_book_ids_for_user, list_of_top_100_books):
-        # Combine user and top 100 book ids for a single query
+    def get_recommendations(self, list_of_book_ids_for_user, list_of_top_10_books):
         user_books = self.get_book_vectors(list_of_book_ids_for_user)
-        search_books = self.get_book_vectors(list_of_top_100_books)
+        search_books = self.get_book_vectors(list_of_top_10_books)
 
         user_books_features = [book['vector'] for book in user_books]
         search_books_features = [book['vector'] for book in search_books]
 
-        # Convert lists to NumPy arrays for cosine similarity calculation
         user_books_matrix = np.array(user_books_features)
         search_books_matrix = np.array(search_books_features)
 
-        # Calculate cosine similarity
         similarities = cosine_similarity(user_books_matrix, search_books_matrix)
 
-        # Average similarity for each search book
         avg_similarities = np.mean(similarities, axis=0)
 
-        # Sort search books by similarity (and get corresponding book IDs)
         sorted_indices = np.argsort(avg_similarities)[::-1]
         sorted_books = [list_of_top_100_books[idx] for idx in sorted_indices]
 
-        # Return re-ranked list of book IDs
         return sorted_books
 
     
