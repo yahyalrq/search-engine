@@ -79,7 +79,7 @@ class SearchEngine:
     
 
     def query_with_l2r_with_BM25(self, query, personalized=False,user_book_ids=None):
-
+        print("HZEEEEEEEEEEEEEERE")
         self.ce_scorer = CrossEncoderScorer(self.raw_text_dict)
 
         self.recognized_categories = set([])
@@ -104,9 +104,11 @@ class SearchEngine:
         l2r.train('../relevancescorestrain.csv')
         doc_rankings = {}
         ranked_docs = l2r.query(query)
+        print("RANKED_DOCS", ranked_docs)
         print("Finished querying", query)
         doc_scores = [(doc['doc_id'],doc["score"]) for doc in ranked_docs]
         doc_rankings[query] = doc_scores
+        print(doc_scores)
         return doc_rankings[query][0:10]
     
     def query_with_BM25(self, query):

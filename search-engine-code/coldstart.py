@@ -6,6 +6,10 @@ from streamlit.components.v1 import html
 import sys
 import os
 from app import app
+from bson import ObjectId
+from streamlit_carousel import carousel
+
+
 
 # Determine the absolute path of the parent directory
 #parent_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,6 +29,10 @@ mongo_conn_str = "mongodb+srv://bmazari:Rayane80@ir-final.8vivaaw.mongodb.net/?r
 client = pymongo.MongoClient(mongo_conn_str)
 db = client['Processed_Data']
 collection = db['processed_books']
+
+@st.cache_resource
+def create_app():
+    return app()
 
 # Access your database and collection
 def retrieve_genres(collection):
@@ -46,7 +54,6 @@ def retrieve_genres(collection):
 
 
 def retrieve_books(preferences, collection):
-    print(preferences)
     books_by_genre = {}
 
     # Iterate through each genre in the preferences
@@ -75,7 +82,6 @@ def book_carousel_selection(books_by_genre):
             for i in range(0, len(books_by_genre[genre]), 3):  # Adjust the number per row as needed
                 cols = st.columns(3)
                 for col, book in zip(cols, books_by_genre[genre][i:i+3]):
-                    print(book['_id'], "\n\n")
                     with col:
                         st.write(f"Title: {book['title']}")
                         st.write(f"Author: {book['author']}")
@@ -92,11 +98,32 @@ def book_carousel_selection(books_by_genre):
 
 
 
-def main():
+def retrieve_books_by_ids(collection, book_ids):
+    # Convert string IDs to ObjectIDs if necessary
+    object_ids = [ObjectId(id) for id in book_ids]
+    
+    projection = {"_id": 1, "book_id": 1, "title": 1, "author": 1, 
+                  "language": 1, "publisher": 1, "year_published": 1, "description": 1}
+    books = collection.find({"_id": {"$in": object_ids}}, projection)
+    return list(books)
+
+
+
+def book_carousel_retrieved(books):
+    # Create a list of items for the carousel
+    carousel_items = []
+    for book in books:
+        item = dict(title=str(book['title']),text=str(book['author']), interval=None,img= "https://www.mobileread.com/forums/attachment.php?s=d9790f523ff1e127cf8e7160d8e3e671&attachmentid=111305&d=1378926764",)
+        carousel_items.append(item)
+    # Display the carousel in the Streamlit app
+    return carousel_items
+
+
+def main(_app):
+    if 'selected_books_ids' not in st.session_state:
+        st.session_state['selected_books_ids'] = []
     st.title("Welcome to the Book Recommendation App")
-
     user_choice = st.radio("Choose your option:", ('Enter as Guest', 'Get Book Recommendations'))
-
     if user_choice == 'Get Book Recommendations':
         genres = retrieve_genres(collection)  # Fetch genres
         # Display genres for selection
@@ -112,14 +139,31 @@ def main():
         if st.button('Submit Final Selections'):
             # Now process the selected book ids
             st.write("Selected Book IDs:", books_selected)
+        user_specific_input = st.text_input("Searching for Book ?")
+            
+        if st.button("Search for books recomended: "):
+            results = _app.query(user_specific_input, books_selected)
+            book_ids = [docid for docid, _ in results]
+            ranked_books= retrieve_books_by_ids(collection,book_ids )
+            carousel_items  = book_carousel_retrieved(ranked_books)
+            if carousel_items:
+                carousel(items=carousel_items, width=1)
+        
                 # Display books and let user select, then process selection
     elif user_choice == 'Enter as Guest':
         st.write("Welcome, guest! Enjoy the general content.")
-        user_input = st.text_input("Enter your name")
+        user_input = st.text_input("Searching for Book ?")
         if st.button("Search for books: "):
-            results = app.querry(user_input)
-            print("WAZAAAAAAAA; ",results)
+            results = _app.query(user_input)
+            book_ids = [docid for docid, _ in results]
+            ranked_books= retrieve_books_by_ids(collection,book_ids )
+            carousel_items=book_carousel_retrieved(ranked_books)
+            if carousel_items:
+                for elem in carousel_items:
+                    st.write("Book Title:", elem['title'], " - Author: ",elem['text'])
+                carousel(items=carousel_items, width=1)
 
 # Run the app
 if __name__ == "__main__":
-    main()
+    app=create_app()
+    main(app)

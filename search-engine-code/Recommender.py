@@ -112,4 +112,3 @@ def get_sample_books():
     for book in book_ids:
         sample_book_ids.append(str(book["_id"]))
     return sample_book_ids
-
