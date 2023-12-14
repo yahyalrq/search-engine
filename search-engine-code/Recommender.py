@@ -108,11 +108,3 @@ def get_sample_books():
     for book in book_ids:
         sample_book_ids.append(str(book["_id"]))
     return sample_book_ids
-
-book_ids = get_sample_books()
-print(book_ids[:5])
-recommender = Recommender("Processed_Data", "Vectorized_books")
-user_book_ids = book_ids[:5]
-top_100_book_ids = book_ids[5:]
-results = recommender.get_recommendations(user_book_ids, top_100_book_ids)
-print(results)

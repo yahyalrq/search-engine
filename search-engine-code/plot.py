@@ -59,7 +59,7 @@ db = client["Processed_Data"]
 collection = db["processed_books"]
 docid_to_text = {}
 for document in collection.find():
-    docid=str(document["_id"])
+    docid=str(document["book_id"])
     text_description = document.get("description", '')
     docid_to_text[docid] = text_description
 

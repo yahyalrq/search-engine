@@ -211,7 +211,7 @@ class L2RRanker:
         ranked_doc_ids.extend(sorted(other_doc_ids, key=lambda x: document_scores[x], reverse=True))
 
         ranked_docs = [{'doc_id': doc_id, 'score': document_scores[doc_id]} for doc_id in ranked_doc_ids if doc_id in document_scores]
-
+        print("RANKED DOCS", ranked_docs)
         return ranked_docs
         
     def vector_query(self, query: str, docid_to_index, pseudo_feedback_num_docs=0) -> List[Tuple[int, float]]:
