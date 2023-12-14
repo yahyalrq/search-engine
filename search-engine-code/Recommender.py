@@ -9,6 +9,7 @@ import pandas as pd
 from pymongo import UpdateOne
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+
 class Recommender:
     def __init__(self, db_name, collection_name) -> None:
         self.db_name = db_name
@@ -26,18 +27,21 @@ class Recommender:
         self.client = pymongo.MongoClient(mongodb_uri)
 
     def get_book_vectors(self, book_ids):
+        # Fetch book vectors for given book IDs from mongo
         db = self.client[self.db_name]
         collection = db[self.collection_name]
         query = {'doc_id': {'$in': book_ids}}
         book_vectors = collection.find(query)
         return list(book_vectors)
     
-    def get_recommendations(self, list_of_book_ids_for_user, list_of_top_10_books):
+    """def get_recommendations(self, list_of_book_ids_for_user, list_of_top_k_books):
+        # Combine user and top 100 book ids for a single query
         user_books = self.get_book_vectors(list_of_book_ids_for_user)
-        search_books = self.get_book_vectors(list_of_top_10_books)
+        search_books = self.get_book_vectors(list_of_top_k_books)
 
         user_books_features = [book['vector'] for book in user_books]
         search_books_features = [book['vector'] for book in search_books]
+
 
         user_books_matrix = np.array(user_books_features)
         search_books_matrix = np.array(search_books_features)
@@ -47,9 +51,42 @@ class Recommender:
         avg_similarities = np.mean(similarities, axis=0)
 
         sorted_indices = np.argsort(avg_similarities)[::-1]
-        sorted_books = [list_of_top_100_books[idx] for idx in sorted_indices]
+        sorted_books = [list_of_top_k_books[idx] for idx in sorted_indices]
+
+        # Return re-ranked list of book IDs
+        return sorted_books"""
+    
+    def get_recommendations(self, list_of_book_ids_for_user, search_engine_results):
+        # Extract book IDs and search engine scores from the tuples
+        list_of_top_k_books, search_engine_scores = zip(*search_engine_results)
+
+        # Fetch book vectors for user books and search engine results
+        user_books = self.get_book_vectors(list_of_book_ids_for_user)
+        search_books = self.get_book_vectors(list_of_top_k_books)
+
+        # Extract features and calculate cosine similarities
+        user_books_features = [book['vector'] for book in user_books]
+        search_books_features = [book['vector'] for book in search_books]
+        user_books_matrix = np.array(user_books_features)
+        search_books_matrix = np.array(search_books_features)
+        similarities = cosine_similarity(user_books_matrix, search_books_matrix)
+        avg_similarities = np.mean(similarities, axis=0)
+
+        # Normalize cosine similarities and search engine scores
+        normalized_cosine_scores = (avg_similarities - np.min(avg_similarities)) / (np.max(avg_similarities) - np.min(avg_similarities))
+        normalized_search_scores = (np.array(search_engine_scores) - np.min(search_engine_scores)) / (np.max(search_engine_scores) - np.min(search_engine_scores))
+
+        # Weighted combination of scores
+        weight_for_cosine = 0.25  
+        weight_for_search = 1 - weight_for_cosine
+        combined_scores = weight_for_cosine * normalized_cosine_scores + weight_for_search * normalized_search_scores
+
+        # Sort books based on combined scores
+        sorted_indices = np.argsort(combined_scores)[::-1]
+        sorted_books = [list_of_top_k_books[idx] for idx in sorted_indices]
 
         return sorted_books
+
 
     
 
@@ -71,11 +108,11 @@ def get_sample_books():
     for book in book_ids:
         sample_book_ids.append(str(book["_id"]))
     return sample_book_ids
-"""
+
 book_ids = get_sample_books()
 print(book_ids[:5])
 recommender = Recommender("Processed_Data", "Vectorized_books")
 user_book_ids = book_ids[:5]
 top_100_book_ids = book_ids[5:]
 results = recommender.get_recommendations(user_book_ids, top_100_book_ids)
-print(results)"""
+print(results)

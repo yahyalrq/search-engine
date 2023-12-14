@@ -53,8 +53,6 @@ queries = df['query'].tolist()
 relevance_scores = df['rel'].tolist()
 
 query_doc_to_relevance = {(row['query'], row['docid']): row['rel'] for _, row in df.iterrows()}
-print("QUERY to doc relevance", query_doc_to_relevance)
-print("\n \n")
 
 client = MongoClient("mongodb+srv://yahya:Yahya123@ir-final.8vivaaw.mongodb.net/?retryWrites=true&w=majority")
 db = client["Processed_Data"]
@@ -85,9 +83,12 @@ for query, query_relevance in zip(queries, relevance_scores):
     doc_scores = [(doc['doc_id'], doc["score"]) for doc in doc_scores]
     doc_scores.sort(key=lambda x: x[1], reverse=True)
     print(doc_scores[0:5])
+    # Filter out doc_ids not in query_doc_to_relevance
+    filtered_doc_scores = [(doc_id, score) for doc_id, score in doc_scores if (query, doc_id) in query_doc_to_relevance]
 
-    sorted_doc_relevances = [query_doc_to_relevance[(query, doc_id)] for doc_id, _ in doc_scores]
+    sorted_doc_relevances = [query_doc_to_relevance[(query, doc_id)] for doc_id, _ in filtered_doc_scores]
 
+    print("SORTED DOC RELEVANCES", sorted_doc_relevances)
     ndcg = ndcg_score(sorted_doc_relevances, list(query_doc_to_relevance.values()))
     map = map_score(sorted_doc_relevances)
     individual_ndcg_scores.append(ndcg)
